@@ -1,0 +1,94 @@
+"use client";
+
+import { useCallback, useState } from "react";
+
+type Props = {
+  onUpload: (file: File) => void;
+  isLoading?: boolean;
+};
+
+export function UploadZone({ onUpload, isLoading }: Props) {
+  const [dragActive, setDragActive] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const validate = useCallback((file: File) => {
+    setError(null);
+    const name = file.name.toLowerCase();
+    const ok =
+      file.type === "application/pdf" ||
+      file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+      name.endsWith(".pdf") ||
+      name.endsWith(".docx");
+    if (!ok) {
+      setError("Please upload a PDF or DOCX file.");
+      return false;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setError("File must be under 5MB.");
+      return false;
+    }
+    return true;
+  }, []);
+
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      setDragActive(false);
+      const file = e.dataTransfer.files?.[0];
+      if (file && validate(file)) onUpload(file);
+    },
+    [onUpload, validate]
+  );
+
+  const handleChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (file && validate(file)) onUpload(file);
+      e.target.value = "";
+    },
+    [onUpload, validate]
+  );
+
+  return (
+    <div className="w-full">
+      <label
+        onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
+        onDragLeave={() => setDragActive(false)}
+        onDrop={handleDrop}
+        className={`
+          flex flex-col items-center justify-center rounded-2xl border-2 border-dashed transition-all cursor-pointer card
+          min-h-[240px] p-10 sm:p-12
+          ${dragActive ? "border-[var(--accent)] bg-[var(--surface-muted)]/60" : "border-[var(--border)] hover:border-[var(--text-muted)]/50 hover:bg-[var(--surface-muted)]/30"}
+          ${isLoading ? "pointer-events-none opacity-80" : ""}
+        `}
+      >
+        <input
+          type="file"
+          accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+          onChange={handleChange}
+          className="hidden"
+        />
+        {isLoading ? (
+          <div className="flex flex-col items-center gap-4">
+            <div className="w-11 h-11 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin" />
+            <span className="text-sm text-[var(--text-muted)]">Analyzing your resume…</span>
+          </div>
+        ) : (
+          <>
+            <div className="w-16 h-16 rounded-2xl bg-[var(--surface-muted)] flex items-center justify-center mb-5">
+              <svg className="w-8 h-8 text-[var(--text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.25}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+              </svg>
+            </div>
+            <p className="text-[var(--text)] font-semibold text-lg mb-1">Drop your resume here</p>
+            <p className="text-sm text-[var(--text-muted)] mb-1">or click to browse</p>
+            <span className="text-xs text-[var(--text-muted)] mt-2">PDF or DOCX · Max 5MB</span>
+          </>
+        )}
+      </label>
+      {error && (
+        <p className="mt-4 text-sm text-[var(--error)] text-center">{error}</p>
+      )}
+    </div>
+  );
+}
