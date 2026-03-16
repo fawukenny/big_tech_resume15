@@ -60,7 +60,7 @@ export default function ResultsPage() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <header className="border-b border-[var(--border)] bg-[var(--surface-elevated)]/95 backdrop-blur-sm sticky top-0 z-10">
+      <header className="border-b border-[var(--border)] bg-[var(--surface)]/80 backdrop-blur-xl sticky top-0 z-10">
         <div className="max-w-5xl mx-auto px-6 py-5 flex items-center justify-between">
           <Link href="/" className="text-base font-semibold tracking-tight text-[var(--text)]">
             Big Tech Resume Review
@@ -77,7 +77,8 @@ export default function ResultsPage() {
       <main className="flex-1 max-w-5xl mx-auto w-full px-6 py-10 sm:py-12 space-y-14 sm:space-y-16 animate-fade-in">
         <div>
           <h1 className="section-heading text-2xl sm:text-3xl">Your results</h1>
-          <p className="section-subheading max-w-xl">
+          <div className="w-10 h-0.5 bg-white/30 mt-2" aria-hidden />
+          <p className="section-subheading max-w-xl mt-3">
             Feedback overlaid on your resume — hover highlights for tips. Then review your summary and benchmark.
           </p>
         </div>

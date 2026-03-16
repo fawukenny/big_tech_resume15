@@ -31,7 +31,7 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <header className="border-b border-[var(--border)] bg-[var(--surface-elevated)]/95 backdrop-blur-sm sticky top-0 z-10">
+      <header className="border-b border-[var(--border)] bg-[var(--surface)]/80 backdrop-blur-xl sticky top-0 z-10">
         <div className="max-w-3xl mx-auto px-6 py-5 flex items-center justify-between">
           <a href="/" className="text-base font-semibold tracking-tight text-[var(--text)]">
             Big Tech Resume Review
@@ -42,18 +42,19 @@ export default function HomePage() {
         </div>
       </header>
 
-      <main className="flex-1 flex flex-col items-center justify-center px-6 py-16 sm:py-24">
-        <h1 className="section-heading text-center max-w-2xl mx-auto text-3xl sm:text-4xl lg:text-[2.75rem] leading-tight">
+      <main className="flex-1 flex flex-col items-center justify-center px-6 py-20 sm:py-28">
+        <h1 className="section-heading text-center max-w-2xl mx-auto text-3xl sm:text-4xl lg:text-[2.75rem]">
           Is your resume MAANG-ready?
         </h1>
-        <p className="section-subheading text-center max-w-lg mx-auto mt-4 mb-12 sm:mb-14">
+        <div className="w-10 h-0.5 bg-white/30 mx-auto mt-3" aria-hidden />
+        <p className="section-subheading text-center max-w-lg mx-auto mt-5 mb-14 sm:mb-16 text-[var(--text-muted)]">
           Get section-by-section feedback on your resume. We highlight what works and suggest
           concrete improvements — like notes on a printed draft.
         </p>
         <div className="w-full max-w-xl">
           <UploadZone onUpload={handleUpload} isLoading={loading} />
         </div>
-        <p className="mt-10 text-xs text-[var(--text-muted)] text-center max-w-md leading-relaxed">
+        <p className="mt-12 text-sm text-[var(--text-muted)] text-center max-w-md leading-relaxed">
           PDF or DOCX, max 5MB. Processed in your browser, not stored. No account required.
         </p>
       </main>

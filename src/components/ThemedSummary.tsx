@@ -17,7 +17,7 @@ function SectionPill({
   const { label: themeLabel, color } = getScoreTheme(sectionScore.score);
   const why = sectionScore.feedback?.[0] ?? "";
   return (
-    <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-muted)]/50 px-4 py-3.5">
+    <div className="rounded-xl border border-[var(--border)] bg-white/[0.04] px-4 py-3.5">
       <div className="flex items-center gap-2 flex-wrap">
         <span className="text-sm font-medium text-[var(--text)]">{label}</span>
         <span className="text-sm font-semibold" style={{ color }}>
@@ -62,6 +62,7 @@ export function ThemedSummary({ analysis }: Props) {
   return (
     <section className="card p-6 sm:p-8">
       <h2 className="section-heading text-xl sm:text-2xl">Summary</h2>
+      <div className="section-heading-underline" />
       <p className="section-subheading mb-6">
         Where you stand and why for each section of your resume.
       </p>

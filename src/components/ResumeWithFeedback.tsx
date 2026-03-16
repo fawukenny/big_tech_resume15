@@ -85,8 +85,8 @@ export function ResumeWithFeedback({ analysis }: Props) {
               key={f.id}
               className={`rounded-xl border p-4 cursor-pointer transition-colors ${
                 selectedId === f.id.replace(/\s/g, "-")
-                  ? "border-[var(--accent)] bg-[var(--surface-muted)]/60"
-                  : "border-[var(--border)] bg-[var(--surface-muted)]/40 hover:border-[var(--text-muted)]/50"
+                  ? "border-white/30 bg-white/[0.08]"
+                  : "border-[var(--border)] bg-white/[0.04] hover:border-white/20"
               }`}
               onClick={() => setSelectedId(f.id.replace(/\s/g, "-"))}
             >

@@ -55,7 +55,7 @@ export function ReportGate({ onRequestReport, disabled }: Props) {
           placeholder="you@example.com"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3.5 text-[var(--text)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent transition-shadow"
+          className="w-full rounded-xl border border-[var(--border)] bg-white/[0.06] px-4 py-3.5 text-[var(--text)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-white/20 focus:border-transparent transition-shadow"
           disabled={disabled}
         />
         <label className="flex items-start gap-3 cursor-pointer">
@@ -63,7 +63,7 @@ export function ReportGate({ onRequestReport, disabled }: Props) {
             type="checkbox"
             checked={acceptMarketing}
             onChange={(e) => setAcceptMarketing(e.target.checked)}
-            className="mt-1 rounded border-[var(--border)] text-[var(--accent)]"
+            className="mt-1 rounded border-[var(--border)] accent-white"
           />
           <span className="text-sm text-[var(--text-muted)] leading-relaxed">
             I accept the terms and agree to receive marketing emails (course launches, resume tips,

@@ -58,7 +58,7 @@ export function UploadZone({ onUpload, isLoading }: Props) {
         className={`
           flex flex-col items-center justify-center rounded-2xl border-2 border-dashed transition-all cursor-pointer card
           min-h-[240px] p-10 sm:p-12
-          ${dragActive ? "border-[var(--accent)] bg-[var(--surface-muted)]/60" : "border-[var(--border)] hover:border-[var(--text-muted)]/50 hover:bg-[var(--surface-muted)]/30"}
+          ${dragActive ? "border-white/40 bg-white/5" : "border-white/10 hover:border-white/20 hover:bg-white/[0.03]"}
           ${isLoading ? "pointer-events-none opacity-80" : ""}
         `}
       >
@@ -70,12 +70,12 @@ export function UploadZone({ onUpload, isLoading }: Props) {
         />
         {isLoading ? (
           <div className="flex flex-col items-center gap-4">
-            <div className="w-11 h-11 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin" />
+            <div className="w-11 h-11 border-2 border-white/50 border-t-transparent rounded-full animate-spin" />
             <span className="text-sm text-[var(--text-muted)]">Analyzing your resume…</span>
           </div>
         ) : (
           <>
-            <div className="w-16 h-16 rounded-2xl bg-[var(--surface-muted)] flex items-center justify-center mb-5">
+            <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mb-5">
               <svg className="w-8 h-8 text-[var(--text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.25}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
               </svg>

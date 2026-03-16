@@ -25,8 +25,16 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${fontSans.variable} ${fontMono.variable}`}>
-      <body className="min-h-screen antialiased font-sans bg-[var(--surface)] text-[var(--text)]">
-        {children}
+      <body className="min-h-screen antialiased font-sans bg-[var(--surface)] text-[var(--text)] relative">
+        {/* Decorative background layers (product-deck style) */}
+        <div className="fixed inset-0 overflow-hidden pointer-events-none" aria-hidden>
+          <div className="absolute inset-0 bg-noise" />
+          <div className="absolute top-0 left-0 w-[280px] h-[280px] bg-dots opacity-80" />
+          <div className="absolute bottom-0 right-0 w-full h-full bg-arcs" />
+        </div>
+        <div className="relative z-0 min-h-screen">
+          {children}
+        </div>
       </body>
     </html>
   );
