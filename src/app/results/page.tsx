@@ -7,6 +7,8 @@ import { ThemedSummary } from "@/components/ThemedSummary";
 import { Benchmark } from "@/components/Benchmark";
 import { ReportGate } from "@/components/ReportGate";
 import { CTABlock } from "@/components/CTABlock";
+import { FeedbackWidget } from "@/components/FeedbackWidget";
+import { AppFooter } from "@/components/AppFooter";
 import { getReportPdfBlob } from "@/lib/generateReportPdf";
 import type { AnalysisResult } from "@/types/resume";
 
@@ -79,8 +81,18 @@ export default function ResultsPage() {
           <h1 className="section-heading text-2xl sm:text-3xl">Your results</h1>
           <div className="w-10 h-0.5 bg-white/30 mt-2" aria-hidden />
           <p className="section-subheading max-w-xl mt-3">
-            Feedback overlaid on your resume — hover highlights for tips. Then review your summary and benchmark.
+            Feedback overlaid on your resume — click a highlight to jump to the matching feedback. Review your summary and benchmark below.
           </p>
+          {analysis.contextUsed && (
+            <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 max-w-2xl">
+              <p className="text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider mb-1">
+                Tailored to your request
+              </p>
+              <p className="text-sm text-[var(--text)] leading-relaxed line-clamp-3">
+                {analysis.contextUsed}
+              </p>
+            </div>
+          )}
         </div>
 
         <ResumeWithFeedback analysis={analysis} />
@@ -92,16 +104,19 @@ export default function ResultsPage() {
         <ReportGate onRequestReport={handleRequestReport} />
 
         <CTABlock />
+
+        <section>
+          <h2 className="text-lg font-semibold text-[var(--text)] mb-2">Help us improve</h2>
+          <p className="text-sm text-[var(--text-muted)] mb-4">
+            Rate your experience and share optional feedback.
+          </p>
+          <div className="max-w-md">
+            <FeedbackWidget />
+          </div>
+        </section>
       </main>
 
-      <footer className="border-t border-[var(--border)] py-8 px-6 mt-12">
-        <div className="max-w-5xl mx-auto flex flex-wrap items-center justify-center gap-x-8 gap-y-2 text-sm text-[var(--text-muted)]">
-          <a href="https://www.youtube.com/playlist?list=PLIJQNP_KafiJ6z9mHH74TMCogoiWU3lhz" target="_blank" rel="noopener noreferrer" className="hover:text-[var(--text)] transition-colors">
-            Free YouTube course
-          </a>
-          <Link href="/" className="hover:text-[var(--text)] transition-colors">Home</Link>
-        </div>
-      </footer>
+      <AppFooter showHomeLink maxWidth="max-w-5xl" />
     </div>
   );
 }

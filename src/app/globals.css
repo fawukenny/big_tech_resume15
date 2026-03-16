@@ -143,12 +143,11 @@ body {
 .resume-content p { margin-bottom: 6px; }
 .resume-content ul { margin: 4px 0 8px 1.2em; }
 
-/* Highlight for feedback (overlay on resume text) */
+/* Highlight for feedback (overlay on resume text); click to scroll to feedback */
 .resume-highlight {
   background: rgba(234, 179, 8, 0.28);
   border-radius: 2px;
   padding: 0 2px;
-  cursor: help;
   position: relative;
 }
 
@@ -156,53 +155,29 @@ body {
   background: rgba(34, 197, 94, 0.22);
 }
 
-/* Comment-bubble tooltip (overlay feedback) */
-[data-tooltip] {
-  position: relative;
+.resume-highlight-clickable {
+  cursor: pointer;
 }
 
-[data-tooltip]::after {
-  content: attr(data-tooltip);
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%) translateY(10px);
-  bottom: 100%;
-  margin-bottom: 6px;
-  padding: 10px 14px;
-  background: rgba(22, 24, 28, 0.98);
-  backdrop-filter: blur(12px);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  font-size: 12px;
-  line-height: 1.45;
-  white-space: pre-line;
-  max-width: 320px;
-  z-index: 50;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.15s, transform 0.15s;
-  box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.5);
+.resume-highlight-clickable:hover {
+  filter: brightness(1.1);
 }
 
-/* Bubble tail */
-[data-tooltip]::before {
-  content: "";
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%) translateY(4px);
-  bottom: 100%;
-  border: 6px solid transparent;
-  border-top-color: rgba(255, 255, 255, 0.12);
-  z-index: 51;
-  opacity: 0;
-  transition: opacity 0.15s;
+.resume-highlight-flash {
+  animation: highlightFlash 1s ease-out;
 }
 
-[data-tooltip]:hover::after,
-[data-tooltip]:hover::before {
-  opacity: 1;
+@keyframes highlightFlash {
+  0% { box-shadow: 0 0 0 2px var(--accent-blue); }
+  70% { box-shadow: 0 0 0 2px var(--accent-blue); }
+  100% { box-shadow: none; }
 }
 
-[data-tooltip]:hover::after {
-  transform: translateX(-50%) translateY(-2px);
+@keyframes pulseOnce {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.animate-pulse-once {
+  animation: pulseOnce 0.6s ease-in-out;
 }

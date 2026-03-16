@@ -46,44 +46,6 @@ export function Benchmark({ data }: Props) {
           <p className="text-2xl font-bold tabular-nums text-[var(--success)]">{percentile}%</p>
         </div>
       </div>
-
-      <div className="mt-6">
-        <div className="h-3 rounded-full bg-white/[0.08] overflow-hidden flex">
-          <div
-            className="bg-[var(--error)] shrink-0 transition-all"
-            style={{ width: `${industryAvg}%` }}
-            title="Industry average"
-          />
-          <div
-            className="bg-[var(--accent-blue)] shrink-0 transition-all"
-            style={{ width: `${Math.min(100 - industryAvg, Math.max(0, yourScore - industryAvg))}%` }}
-            title="Your score"
-          />
-          <div
-            className="bg-[var(--success)] shrink-0 transition-all"
-            style={{ width: `${Math.max(0, topPerformersAvg - Math.max(yourScore, industryAvg))}%` }}
-            title="Top performers"
-          />
-        </div>
-        <div className="flex justify-between text-xs text-[var(--text-muted)] mt-2">
-          <span>0</span>
-          <span>100</span>
-        </div>
-        <div className="flex flex-wrap gap-4 sm:gap-6 mt-3" role="list" aria-label="Bar legend">
-          <div className="flex items-center gap-2">
-            <span className="w-3 h-3 rounded-sm bg-[var(--error)] shrink-0" aria-hidden />
-            <span className="text-sm text-[var(--text-muted)]">Industry avg ({industryAvg})</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="w-3 h-3 rounded-sm bg-[var(--accent-blue)] shrink-0" aria-hidden />
-            <span className="text-sm text-[var(--text-muted)]">You ({yourScore})</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="w-3 h-3 rounded-sm bg-[var(--success)] shrink-0" aria-hidden />
-            <span className="text-sm text-[var(--text-muted)]">Top performers ({topPerformersAvg})</span>
-          </div>
-        </div>
-      </div>
     </section>
   );
 }

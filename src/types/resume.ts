@@ -54,6 +54,8 @@ export interface AnalysisResult {
   benchmark: BenchmarkData;
   rawText: string;
   structuredContent: { section: SectionKey; title: string; body: string }[];
+  /** When set, feedback was tailored to this user-provided context (e.g. job description or focus). */
+  contextUsed?: string;
 }
 
 export interface ParsedResume {

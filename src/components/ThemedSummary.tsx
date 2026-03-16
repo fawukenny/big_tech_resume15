@@ -33,15 +33,9 @@ function SectionPill({
 
 export function ThemedSummary({ analysis }: Props) {
   const overall = getScoreTheme(analysis.overallScore);
-  const sectionScoresByKey = useMemo(() => {
-    const map = new Map<string, SectionScore>();
-    for (const s of analysis.sectionScores) {
-      map.set(s.section, s);
-    }
-    return map;
-  }, [analysis.sectionScores]);
-
   const sectionsFromCv = useMemo(() => {
+    const scores = analysis.sectionScores;
+    const blocks = analysis.structuredContent;
     const labels: Record<string, string> = {
       experience: "Experience",
       education: "Education",
@@ -50,14 +44,55 @@ export function ThemedSummary({ analysis }: Props) {
       projects: "Projects",
       other: "Other",
     };
-    return analysis.structuredContent
-      .map((block) => ({
-        label: (block.title && block.title.trim()) || labels[block.section] || block.section,
-        sectionKey: block.section,
-        sectionScore: sectionScoresByKey.get(block.section),
-      }))
-      .filter((item) => item.sectionScore != null);
-  }, [analysis.structuredContent, sectionScoresByKey]);
+    let list: { label: string; sectionScore: SectionScore }[];
+    if (scores.length >= blocks.length) {
+      list = blocks
+        .map((block, i) => ({
+          label: (scores[i]?.label && scores[i].label.trim()) || block.title || block.section,
+          sectionScore: scores[i],
+        }))
+        .filter((item): item is { label: string; sectionScore: SectionScore } => item.sectionScore != null);
+    } else {
+      const bySection = new Map<string, SectionScore>();
+      for (const s of scores) bySection.set(s.section, s);
+      list = blocks
+        .map((block) => ({
+          label: (block.title && block.title.trim()) || labels[block.section] || block.section,
+          sectionScore: bySection.get(block.section),
+        }))
+        .filter((item): item is { label: string; sectionScore: SectionScore } => item.sectionScore != null);
+    }
+    // Combine "Resume" and "Other" into one section with merged feedback
+    const resumeOtherLabels = ["resume", "other"];
+    const toMerge = list.filter((item) => resumeOtherLabels.includes(item.label.toLowerCase().trim()));
+    const rest = list.filter((item) => !resumeOtherLabels.includes(item.label.toLowerCase().trim()));
+    if (toMerge.length === 0) return list;
+    const mergedOne: { label: string; sectionScore: SectionScore } = {
+      label: "Resume & contact",
+      sectionScore: {
+        ...toMerge[0].sectionScore,
+        label: "Resume & contact",
+        score: Math.round(toMerge.reduce((sum, i) => sum + i.sectionScore.score, 0) / toMerge.length),
+        feedback: toMerge.flatMap((i) => i.sectionScore.feedback || []),
+      },
+    };
+    const firstResumeOtherIndex = list.findIndex((item) => resumeOtherLabels.includes(item.label.toLowerCase().trim()));
+    const combined: { label: string; sectionScore: SectionScore }[] = [];
+    let mergedPushed = false;
+    list.forEach((item, idx) => {
+      const labelLower = item.label.toLowerCase().trim();
+      if (resumeOtherLabels.includes(labelLower)) {
+        if (idx === firstResumeOtherIndex) {
+          combined.push(mergedOne);
+          mergedPushed = true;
+        }
+      } else {
+        combined.push(item);
+      }
+    });
+    if (!mergedPushed) combined.push(mergedOne);
+    return combined;
+  }, [analysis.structuredContent, analysis.sectionScores]);
 
   return (
     <section className="card p-6 sm:p-8">
@@ -75,7 +110,7 @@ export function ThemedSummary({ analysis }: Props) {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {sectionsFromCv.map((item, i) => (
           <SectionPill
-            key={`${item.sectionKey}-${i}-${item.label}`}
+            key={`${item.label}-${i}`}
             label={item.label}
             sectionScore={item.sectionScore}
           />
