@@ -179,8 +179,13 @@ export async function analyzeResumeWithLLM(
     throw new Error("LLM returned invalid JSON");
   }
 
-  const overallScore = Math.min(100, Math.max(0, Number(parsed.overallScore) ?? 70));
   const sectionScores = normalizeSectionScores((parsed.sectionScores as SectionScore[]) || [], structuredContent);
+  // Derive overall from section scores so Summary is logically consistent (e.g. overall cannot be "Strong" when most sections are "Needs work")
+  const sectionAverage =
+    sectionScores.length > 0
+      ? sectionScores.reduce((sum, s) => sum + s.score, 0) / sectionScores.length
+      : Number(parsed.overallScore) ?? 70;
+  const overallScore = Math.min(100, Math.max(0, Math.round(sectionAverage)));
   const criteria = normalizeCriteria((parsed.criteria as ScorecardCriteria[]) || []);
   const feedback = normalizeLlmFeedback((parsed.feedback as FeedbackItem[]) || [], structuredContent);
   const benchmark = computeBenchmark(overallScore);
