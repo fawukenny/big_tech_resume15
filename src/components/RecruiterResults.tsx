@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import type { AnalysisResult, FeedbackItem, RecruiterVerdict } from "@/types/resume";
+import type { AnalysisResult, RecruiterVerdict } from "@/types/resume";
 import { ResumeWithFeedback } from "@/components/ResumeWithFeedback";
 import { HowYouCompareBar } from "@/components/HowYouCompareBar";
 import { resolveFilterOutRisksDisplay } from "@/lib/filterOutRisks";
@@ -19,12 +19,6 @@ function DecisionPill({ label, tone }: { label: string; tone: "good" | "warn" | 
       {label}
     </span>
   );
-}
-
-function splitFeedback(feedback: FeedbackItem[]) {
-  const praise = feedback.filter((f) => f.type === "praise");
-  const flags = feedback.filter((f) => f.type !== "praise");
-  return { praise, flags };
 }
 
 function verdictCardTheme(rv: RecruiterVerdict | undefined) {
@@ -102,7 +96,10 @@ export function RecruiterResults({ analysis }: { analysis: AnalysisResult }) {
     if (!isPdf && view === "document") setView("highlights");
   }, [mounted, isPdf, view]);
 
-  const { praise } = useMemo(() => splitFeedback(analysis.feedback), [analysis.feedback]);
+  const praise = useMemo(
+    () => analysis.feedback.filter((f) => f.type === "praise"),
+    [analysis.feedback]
+  );
 
   const helpsToShow = helps.length ? helps : praise.slice(0, 6).map((f) => f.message);
   const risksToShow = filterOutRisks;
@@ -201,7 +198,6 @@ export function RecruiterResults({ analysis }: { analysis: AnalysisResult }) {
 
         <ResumeWithFeedback
           analysis={analysis}
-          feedbackHeading="Recruiter notes"
           pdfDocumentUrl={isPdf ? fileUrl : null}
           resumeDisplayMode={view === "document" && isPdf ? "pdf" : "structured"}
           pdfViewerRemountKey={pdfRemountKey}
