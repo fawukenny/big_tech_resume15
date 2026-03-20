@@ -21,14 +21,6 @@ export function AppFooter({ showHomeLink = false, maxWidth = "max-w-3xl" }: Prop
       <footer className="border-t border-[var(--border)] py-8 px-6 mt-12">
         <div className={`${maxWidth} mx-auto flex flex-col items-center gap-4 text-sm text-[var(--text-muted)]`}>
           <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-2">
-            <a
-              href="https://www.youtube.com/playlist?list=PLIJQNP_KafiJ6z9mHH74TMCogoiWU3lhz"
-              target="_blank"
-              rel="noopener noreferrer"
-              className={showHomeLink ? "hover:text-[var(--text)] transition-colors" : "font-medium text-[var(--text)] hover:underline transition-colors"}
-            >
-              Insider&apos;s guide: How to Elevate Your Resume for Big Tech — Free YouTube Course
-            </a>
             {showHomeLink && (
               <Link href="/" className="hover:text-[var(--text)] transition-colors">
                 Home
@@ -49,7 +41,17 @@ export function AppFooter({ showHomeLink = false, maxWidth = "max-w-3xl" }: Prop
               Privacy
             </button>
           </div>
-          <p className="text-center text-xs">© 2026 Liberty Experience Inc. Designed by Kehinde Fawumi</p>
+          <p className="text-center text-xs">
+            © 2026 Liberty Experience Inc. Designed by{" "}
+            <a
+              href="https://www.linkedin.com/in/kehindefawumi"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[var(--accent-blue)] hover:underline"
+            >
+              Kehinde Fawumi
+            </a>
+          </p>
         </div>
       </footer>
 

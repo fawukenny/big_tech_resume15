@@ -309,12 +309,246 @@ export function analyzeResume(
   const feedback = generateFeedback(structuredContent, rawText);
   const benchmark = computeBenchmark(overallScore);
 
+  const ratingFromScore = (n: number): "High" | "Medium" | "Low" =>
+    n >= 75 ? "High" : n >= 50 ? "Medium" : "Low";
+
+  const decision: "Interview" | "Reject" =
+    overallScore >= 75 ? "Interview" : "Reject";
+  const recruiterVerdict = (() => {
+    if (overallScore >= 85) {
+      return {
+        verdict: "High Signal" as const,
+        hiringLikelihood: "High" as const,
+        decision,
+        anchorNote: "Strong enough to compete. Still verify your bullets read like ownership (not tasks) and that metrics are consistent across roles.",
+        strengths: [
+          "Measurable outcomes / impact signals present",
+          "ATS-friendly structure or consistent formatting",
+          "Big Tech keywords and ownership language appear at least some of the time",
+        ],
+        criticalWeaknesses: [
+          "Some bullets may still read too broad or responsibility-focused",
+          "Metrics may need to be more frequent or more directly tied to business outcomes",
+          "Tighten clarity so a recruiter can scan in 6 seconds",
+        ],
+      };
+    }
+    if (overallScore >= 75) {
+      return {
+        verdict: "Strong Signal" as const,
+        hiringLikelihood: "High" as const,
+        decision,
+        anchorNote: "Promising and likely interview-competitive, but you’re not fully optimized for the top 10% bar yet.",
+        strengths: [
+          "Outcome language and/or leadership signals are present",
+          "Some scale/metrics appear (even if not on every bullet)",
+          "Sections are mostly legible for ATS scanning",
+        ],
+        criticalWeaknesses: [
+          "You likely miss at least 1-2 critical keyword clusters for the target role",
+          "Ownership depth (scope, decision-making, tradeoffs) may be unclear",
+          "Several bullets may need tighter impact framing and better metrics",
+        ],
+      };
+    }
+    if (overallScore >= 50) {
+      return {
+        verdict: "Mixed Signal" as const,
+        hiringLikelihood: "Medium" as const,
+        decision: "Reject" as const,
+        anchorNote: "This will often get filtered unless you fix ownership clarity and measurable business impact in the first 1–2 roles.",
+        strengths: [
+          "Some relevant keywords and ATS-friendly formatting",
+          "Potentially credible experience structure",
+        ],
+        criticalWeaknesses: [
+          "Impact/metrics frequency is too low for the Big Tech bar",
+          "Too many bullets may sound like duties instead of owned outcomes",
+          "Recruiters will struggle to confirm scope and technical depth quickly",
+        ],
+      };
+    }
+    return {
+      verdict: "Low Signal" as const,
+      hiringLikelihood: "Low" as const,
+      decision: "Reject" as const,
+      anchorNote: "High risk of being screened out. The resume likely lacks enough measurable impact and scope clarity.",
+      strengths: [
+        "Baseline ATS readability exists",
+      ],
+      criticalWeaknesses: [
+        "Insufficient measurable outcomes (numbers, scale, business impact)",
+        "Weak ownership language and unclear scope",
+        "Missing or generic keywords for the target level",
+      ],
+    };
+  })();
+
+  const scanTest = (() => {
+    const impactC = criteria.find((c) => c.key === "impact")?.score ?? 50;
+    const metricsC = criteria.find((c) => c.key === "metrics")?.score ?? 50;
+    const keywordsC = criteria.find((c) => c.key === "keywords")?.score ?? 50;
+    const leadershipC = criteria.find((c) => c.key === "leadership")?.score ?? 50;
+    const readabilityC = criteria.find((c) => c.key === "readability")?.score ?? 50;
+    const structureC = criteria.find((c) => c.key === "structure")?.score ?? 50;
+
+    const standsOut: string[] = [];
+    if (impactC >= 70) standsOut.push("Impact/outcome language shows up in your experience.");
+    if (keywordsC >= 70) standsOut.push("You include enough Big Tech keywords to avoid being totally invisible to ATS.");
+    if (leadershipC >= 70) standsOut.push("Leadership/ownership cues appear (led/owned/managed or clear scope).");
+    if (!standsOut.length) standsOut.push("At least some sections are structured in a readable way.");
+
+    const confusing: string[] = [];
+    if (readabilityC < 65) confusing.push("Scanning is slower than it needs to be (bullets/spacing/wording).");
+    if (structureC < 65) confusing.push("Formatting consistency may be weaker than ideal for ATS + recruiters.");
+
+    const missing: string[] = [];
+    if (metricsC < 65) missing.push("You need more quantifiable metrics (%, $ , scale, time saved) across bullets.");
+    if (keywordsC < 65) missing.push("Add more role-matching keywords (program management + technical program depth).");
+    if (leadershipC < 65) missing.push("Clarify scope and ownership (team size, cross-functional leadership, decisions made).");
+    if (!missing.length) missing.push("Strengthen differentiation with clearer technical depth and sharper execution details.");
+
+    return { standsOut: standsOut.slice(0, 4), confusing: confusing.slice(0, 3), missing: missing.slice(0, 4) };
+  })();
+
+  const praise = feedback.filter((f) => f.type === "praise");
+  const hurts = feedback.filter((f) => f.type !== "praise");
+  const whatHelps = {
+    title: "What helps you get interviews",
+    bullets: praise.slice(0, 5).map((f) => f.message),
+  };
+  const whatHurts = {
+    title: "What hurts you get filtered out",
+    bullets: hurts.slice(0, 8).map((f) => f.message),
+  };
+
+  const topFixes = (() => {
+    const candidates = hurts
+      .filter((f) => f.suggestedRewrite || f.type === "critical")
+      .slice(0, 5)
+      .map((f, idx) => ({
+        rank: idx + 1,
+        change: f.type === "critical" ? "Fix the blocker (ATS/qualification risk)" : "Strengthen the strongest weak area",
+        whyItMatters: f.message,
+        exampleRewrite:
+          f.suggestedRewrite ||
+          "Example rewrite: Start with ownership (Led/Owned/Built) + add a metric + end with business impact.",
+        relatedFeedbackIds: [f.id],
+      }));
+    return candidates.length
+      ? candidates
+      : hurts.slice(0, 5).map((f, idx) => ({
+          rank: idx + 1,
+          change: "Improve clarity and impact",
+          whyItMatters: f.message,
+          exampleRewrite: f.suggestedRewrite || "Rewrite with measurable outcomes and ownership language.",
+          relatedFeedbackIds: [f.id],
+        }));
+  })();
+
+  const gapVsTopCandidates = (() => {
+    const metricsScore = criteria.find((c) => c.key === "metrics")?.score ?? 50;
+    const keywordsScore = criteria.find((c) => c.key === "keywords")?.score ?? 50;
+    const leadershipScore = criteria.find((c) => c.key === "leadership")?.score ?? 50;
+    if (overallScore >= 75) {
+      return "Top candidates will have sharper ownership phrasing (decision-making, tradeoffs), more frequent metrics on every role, and clearer technical depth that matches the target program scope.";
+    }
+    return `Compared to top candidates, you likely lose at the Big Tech bar because ${metricsScore < 65 ? "metrics are too inconsistent" : "impact is not quantified enough"}, ${
+      keywordsScore < 65 ? "keywords don’t align tightly enough with the role" : "keyword coverage feels generic"
+    }, and ${leadershipScore < 65 ? "scope/ownership is not explicit" : "execution depth isn't clearly demonstrated"}.`;
+  })();
+
+  const fullTextLower = rawText.toLowerCase();
+  const techDepthSignals = ["distributed", "microservices", "api", "latency", "throughput", "caching", "system", "scal", "qps", "kpi", "ml"];
+  const techDepthCount = techDepthSignals.filter((t) => fullTextLower.includes(t)).length;
+  const technicalDepthScore = Math.min(100, 35 + techDepthCount * 12);
+
+  const clarityScore = criteria.find((c) => c.key === "readability")?.score ?? 50;
+  const executionScore = (criteria.find((c) => c.key === "structure")?.score ?? 50) * 0.6 + (criteria.find((c) => c.key === "readability")?.score ?? 50) * 0.4;
+  const differentiationScore = (criteria.find((c) => c.key === "keywords")?.score ?? 50) * 0.5 + (criteria.find((c) => c.key === "impact")?.score ?? 50) * 0.5;
+
+  const scorecardDimensions = [
+    {
+      key: "impact" as const,
+      label: "Impact",
+      rating: ratingFromScore(criteria.find((c) => c.key === "impact")?.score ?? 50),
+      oneLineExplanation: "Outcome focus and business impact clarity.",
+      weight: 0.2,
+    },
+    {
+      key: "ownership" as const,
+      label: "Ownership",
+      rating: ratingFromScore(criteria.find((c) => c.key === "leadership")?.score ?? 50),
+      oneLineExplanation: "Scope, decision-making, and leadership language.",
+      weight: 0.2,
+    },
+    {
+      key: "technicalDepth" as const,
+      label: "Technical Depth",
+      rating: ratingFromScore(technicalDepthScore),
+      oneLineExplanation: "Technical terms and execution depth that recruiters can verify quickly.",
+      weight: 0.15,
+    },
+    {
+      key: "execution" as const,
+      label: "Execution",
+      rating: ratingFromScore(executionScore),
+      oneLineExplanation: "Quality of structure, bullet density, and how clearly the work is executed.",
+      weight: 0.15,
+    },
+    {
+      key: "clarity" as const,
+      label: "Clarity",
+      rating: ratingFromScore(clarityScore),
+      oneLineExplanation: "ATS + recruiter readability in a 6-second scan.",
+      weight: 0.15,
+    },
+    {
+      key: "differentiation" as const,
+      label: "Differentiation",
+      rating: ratingFromScore(differentiationScore),
+      oneLineExplanation: "Role-matching keywords + distinctiveness in your impact framing.",
+      weight: 0.15,
+    },
+  ];
+
+  const selectForSection = (section: SectionKey) => feedback.filter((f) => f.section === section);
+  const takeTop = (arr: FeedbackItem[], n: number) => arr.slice(0, n);
+  const byCriticalFirst = (arr: FeedbackItem[]) =>
+    [...arr].sort((a, b) => (a.type === "critical" ? -1 : 1) - (b.type === "critical" ? -1 : 1));
+
+  const step1 = takeTop(byCriticalFirst(selectForSection("summary").concat(selectForSection("other"))), 3).map((f) => f.id);
+  const step2 = takeTop(byCriticalFirst(selectForSection("experience")), 4).map((f) => f.id);
+  const step3 = takeTop(
+    byCriticalFirst(feedback.filter((f) => ["metrics", "keywords", "leadership"].includes(f.category)).slice()),
+    3
+  ).map((f) => f.id);
+  const step4 = takeTop(byCriticalFirst(feedback.filter((f) => f.type === "critical" || f.category === "metrics" || f.category === "keywords")), 4).map((f) => f.id);
+  const step5 = takeTop(byCriticalFirst(hurts), 5).map((f) => f.id);
+
+  const allFeedbackIds = new Set(feedback.map((f) => f.id));
+  const reviewSteps = [
+    { id: "first-impression", title: "First Impression", prompt: "What a recruiter sees first", highlightFeedbackIds: step1.filter((id) => allFeedbackIds.has(id)) },
+    { id: "experience", title: "Experience", prompt: "Ownership + outcomes inside roles", highlightFeedbackIds: step2.filter((id) => allFeedbackIds.has(id)) },
+    { id: "depth", title: "Depth", prompt: "Technical depth + program management signals", highlightFeedbackIds: step3.filter((id) => allFeedbackIds.has(id)) },
+    { id: "gaps", title: "Gaps", prompt: "What will likely get you filtered out", highlightFeedbackIds: step4.filter((id) => allFeedbackIds.has(id)) },
+    { id: "top-fixes", title: "Top Fixes", prompt: "Ranked changes that move the needle fastest", highlightFeedbackIds: step5.filter((id) => allFeedbackIds.has(id)) },
+  ].filter((s) => s.highlightFeedbackIds.length > 0);
+
   return {
     overallScore: Math.min(100, Math.max(0, overallScore)),
     sectionScores,
     criteria,
     feedback,
     benchmark,
+    recruiterVerdict,
+    scanTest,
+    whatHelps,
+    whatHurts,
+    topFixes,
+    gapVsTopCandidates,
+    scorecardDimensions,
+    reviewSteps,
     rawText,
     structuredContent: structuredContent.map((s) => ({
       section: s.section,

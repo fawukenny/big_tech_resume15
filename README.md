@@ -23,7 +23,7 @@ A modern web app that analyzes resumes for MAANG/Big Tech readiness with AI-powe
 ## Tech stack
 
 - **Next.js 14** (App Router), **TypeScript**, **Tailwind CSS**
-- **Parsing**: `pdf-parse` (PDF), `mammoth` (DOCX)
+- **Parsing**: `pdfjs-dist` (PDF text on server), `mammoth` (DOCX)
 - **Report**: `jspdf` (client-side PDF)
 
 ## Run locally

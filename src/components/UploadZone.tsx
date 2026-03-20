@@ -57,7 +57,7 @@ export function UploadZone({ onUpload, isLoading }: Props) {
         onDrop={handleDrop}
         className={`
           flex flex-col items-center justify-center rounded-2xl border-2 border-dashed transition-all cursor-pointer card
-          min-h-[240px] p-10 sm:p-12
+          min-h-[100px] py-5 px-4 sm:py-6 sm:px-6
           ${dragActive ? "border-white/40 bg-white/5" : "border-white/10 hover:border-white/20 hover:bg-white/[0.03]"}
           ${isLoading ? "pointer-events-none opacity-80" : ""}
         `}
@@ -69,20 +69,22 @@ export function UploadZone({ onUpload, isLoading }: Props) {
           className="hidden"
         />
         {isLoading ? (
-          <div className="flex flex-col items-center gap-4">
-            <div className="w-11 h-11 border-2 border-white/50 border-t-transparent rounded-full animate-spin" />
-            <span className="text-sm text-[var(--text-muted)]">Analyzing your resume…</span>
+          <div className="flex flex-col items-center gap-2 py-1">
+            <div className="w-9 h-9 border-2 border-white/50 border-t-transparent rounded-full animate-spin" />
+            <span className="text-xs sm:text-sm text-[var(--text-muted)]">Analyzing your resume…</span>
           </div>
         ) : (
           <>
-            <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mb-5">
-              <svg className="w-8 h-8 text-[var(--text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.25}>
+            <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center mb-2 shrink-0">
+              <svg className="w-5 h-5 text-[var(--text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.25}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
               </svg>
             </div>
-            <p className="text-[var(--text)] font-semibold text-lg mb-1">Drop your resume here</p>
-            <p className="text-sm text-[var(--text-muted)] mb-1">or click to browse</p>
-            <span className="text-xs text-[var(--text-muted)] mt-2">PDF or DOCX · Max 5MB</span>
+            <p className="text-[var(--text)] font-semibold text-sm sm:text-base mb-0.5 text-center leading-snug">
+              Drop your resume here
+            </p>
+            <p className="text-xs text-[var(--text-muted)] text-center">or click to browse</p>
+            <span className="text-[10px] sm:text-xs text-[var(--text-muted)] mt-1.5">PDF or DOCX · Max 5MB</span>
           </>
         )}
       </label>

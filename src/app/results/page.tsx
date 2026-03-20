@@ -2,14 +2,11 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ResumeWithFeedback } from "@/components/ResumeWithFeedback";
-import { ThemedSummary } from "@/components/ThemedSummary";
-import { Benchmark } from "@/components/Benchmark";
 import { ReportGate } from "@/components/ReportGate";
 import { CTABlock } from "@/components/CTABlock";
-import { FeedbackWidget } from "@/components/FeedbackWidget";
 import { AppFooter } from "@/components/AppFooter";
 import { getReportPdfBlob } from "@/lib/generateReportPdf";
+import { RecruiterResults } from "@/components/RecruiterResults";
 import type { AnalysisResult } from "@/types/resume";
 
 export default function ResultsPage() {
@@ -76,12 +73,12 @@ export default function ResultsPage() {
         </div>
       </header>
 
-      <main className="flex-1 max-w-5xl mx-auto w-full px-6 py-10 sm:py-12 space-y-14 sm:space-y-16 animate-fade-in">
+      <main className="flex-1 max-w-5xl mx-auto w-full px-6 py-8 sm:py-10 space-y-10 sm:space-y-12 animate-fade-in">
         <div>
           <h1 className="section-heading text-2xl sm:text-3xl">Your results</h1>
           <div className="w-10 h-0.5 bg-white/30 mt-2" aria-hidden />
           <p className="section-subheading max-w-xl mt-3">
-            Feedback overlaid on your resume — click a highlight to jump to the matching feedback. Review your summary and benchmark below.
+            Let&apos;s walk through your resume the way a recruiter would. You&apos;ll see what stands out at first glance, what looks risky, and the fastest fixes to get interviews.
           </p>
           {analysis.contextUsed && (
             <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 max-w-2xl">
@@ -95,25 +92,12 @@ export default function ResultsPage() {
           )}
         </div>
 
-        <ResumeWithFeedback analysis={analysis} />
-
-        <ThemedSummary analysis={analysis} />
-
-        <Benchmark data={analysis.benchmark} />
+        <RecruiterResults analysis={analysis} />
 
         <ReportGate onRequestReport={handleRequestReport} />
 
-        <CTABlock />
+        <CTABlock variant="results" />
 
-        <section>
-          <h2 className="text-lg font-semibold text-[var(--text)] mb-2">Help us improve</h2>
-          <p className="text-sm text-[var(--text-muted)] mb-4">
-            Rate your experience and share optional feedback.
-          </p>
-          <div className="max-w-md">
-            <FeedbackWidget />
-          </div>
-        </section>
       </main>
 
       <AppFooter showHomeLink maxWidth="max-w-5xl" />

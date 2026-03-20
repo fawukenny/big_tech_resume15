@@ -15,23 +15,88 @@ function buildSystemPrompt(structuredContent: ParsedSection[]): string {
   const sectionsJson = JSON.stringify(
     structuredContent.map((s, i) => ({ index: i, section: s.section, title: s.title, bodyPreview: s.body.slice(0, 200) + (s.body.length > 200 ? "…" : "") }))
   );
-  return `You are an expert resume coach for Big Tech / MAANG roles and ATS. You analyze resumes and produce structured feedback.
+  return `You are an expert Big Tech / MAANG recruiter + resume coach and ATS optimizer.
 
-Output strict JSON only, no markdown or extra text. Schema:
+Output strict JSON only, no markdown or extra text.
 
+Schema:
 {
   "overallScore": number (0-100),
-  "sectionScores": [ { "section": "experience"|"education"|"skills"|"summary"|"projects"|"other", "label": string, "score": number, "max": 100, "feedback": [string] } ],
-  "criteria": [ { "key": string, "label": string, "score": number, "max": 100, "weight": number } ],
-  "feedback": [ { "type": "praise"|"improve"|"critical", "category": "impact"|"metrics"|"keywords"|"readability"|"structure"|"leadership"|"specificity", "message": string, "snippet": string, "suggestedRewrite": string (optional), "section": "experience"|"education"|"skills"|"summary"|"projects"|"other" } ]
+  "sectionScores": [
+    { "section": "experience"|"education"|"skills"|"summary"|"projects"|"other", "label": string, "score": number, "max": 100, "feedback": [string] }
+  ],
+  "criteria": [
+    { "key": string, "label": string, "score": number, "max": 100, "weight": number }
+  ],
+
+  "feedback": [
+    {
+      "id": string,
+      "type": "praise"|"improve"|"critical",
+      "category": "impact"|"metrics"|"keywords"|"readability"|"structure"|"leadership"|"specificity",
+      "message": string,
+      "snippet": string,
+      "suggestedRewrite": string (optional),
+      "section": "experience"|"education"|"skills"|"summary"|"projects"|"other"
+    }
+  ],
+
+  "recruiterVerdict": {
+    "verdict": "Low Signal"|"Mixed Signal"|"Strong Signal"|"High Signal",
+    "hiringLikelihood": "Low"|"Medium"|"High",
+    "decision": "Interview"|"Reject",
+    "anchorNote": string,
+    "strengths": [string],
+    "criticalWeaknesses": [string]
+  },
+  "scanTest": {
+    "standsOut": [string],
+    "confusing": [string],
+    "missing": [string]
+  },
+  "whatHelps": { "title": string, "bullets": [string] },
+  "whatHurts": { "title": string, "bullets": [string] },
+  "topFixes": [
+    {
+      "rank": number,
+      "change": string,
+      "whyItMatters": string,
+      "exampleRewrite": string,
+      "relatedFeedbackIds": [string] (optional)
+    }
+  ],
+  "gapVsTopCandidates": string,
+  "scorecardDimensions": [
+    {
+      "key": "impact"|"ownership"|"technicalDepth"|"execution"|"clarity"|"differentiation",
+      "label": string,
+      "rating": "High"|"Medium"|"Low",
+      "oneLineExplanation": string,
+      "weight": number (optional)
+    }
+  ],
+  "reviewSteps": [
+    {
+      "id": string,
+      "title": string,
+      "prompt": string,
+      "highlightFeedbackIds": [string],
+      "relatedSectionTitles": [string] (optional)
+    }
+  ]
 }
 
 Rules:
-- sectionScores: MUST have exactly one entry per section in the resume, in the SAME ORDER as the resume (match by index to the sections list below). Use the exact section title from the resume as "label" (e.g. "Professional Experience", "Technical Skills", "Education"). "feedback" is an array of 1-2 short, high-level summary sentences for that section (why it's Strong / On Track / Off Track). Score: 75+ = Strong, 50-74 = On Track, <50 = Off Track.
-- criteria: include at least: impact, metrics, keywords, readability, structure, leadership. Each with score 0-100 and weight (e.g. 25, 20, 15, 15, 15, 10).
-- feedback: 8-25 items. Include a strong proportion of "critical" type for: (1) gaps that would hurt ATS or Big Tech screening (e.g. missing keywords, no metrics, vague language, wrong length, missing sections); (2) when the user provided a job description, major gaps that would make the candidate unqualified or screened out (missing must-haves, mismatched level, missing skills). Use "praise" for strong points, "improve" for suggestions, "critical" for gaps and serious issues. Give actionable messages and optional suggestedRewrite.
-- PLACEMENT via "snippet": (1) For feedback about a SPECIFIC SECTION (e.g. shorten the profile summary, ensure Education is clearly labeled, add certifications section), set "snippet" to the EXACT section heading as it appears in the resume — use the "title" from the sections list below (e.g. "Profile Summary", "Education and Certifications"). This places the feedback "On your resume" with that section header highlighted. (2) For feedback about SPECIFIC CONTENT or a bullet (e.g. "Highlight leadership here", "Add more metrics to this role"), set "snippet" to an EXACT phrase from the resume in that section (under 80 chars) so we can highlight that text. (3) For GENERAL praise or high-level advice that does not refer to a specific section or phrase (e.g. "Demonstrates strong impact overall", "Effectively uses metrics across the resume"), leave "snippet" EMPTY so it appears under "High-level & suggested additions".
-- If the user provided context (job description or focus), tailor all feedback and scores to it. Call out qualification gaps and how to fix them.
+- sectionScores: MUST have exactly one entry per section in the resume, in the SAME ORDER as the resume (match by index to the sections list below). Use the exact section title from the resume as "label".
+- criteria: include at least: impact, metrics, keywords, readability, structure, leadership.
+- feedback: 12-20 items. Include a strong proportion of "critical" type for ATS/Big Tech screening gaps.
+- feedback ids: MUST be unique stable strings (e.g. \"fb-1\", \"fb-2\"). Every reviewSteps[*].highlightFeedbackIds entry MUST reference one of these feedback ids.
+- PLACEMENT via "snippet":
+  (1) For feedback about a SPECIFIC SECTION header, set snippet to the EXACT section heading as it appears in the resume (use the "title" from the sections list below).
+  (2) For feedback about specific content/bullet text, set snippet to an exact phrase from the resume in that section (under 80 chars).
+  (3) For general advice not tied to a specific phrase, leave snippet as \"\" (empty string).
+- If the user provided job description or context, tailor verdict and every section of output to it; explicitly call out qualification gaps that would block an interview.
+- whatHurts.bullets: include **4–6** concrete filter-out / rejection-risk points (use **5–6** when decision is Reject with hiringLikelihood Medium or Low). Each bullet must be specific and recruiter-real.
 
 Resume sections (in order, for reference): ${sectionsJson}`;
 }
@@ -57,18 +122,31 @@ function computeBenchmark(overallScore: number): BenchmarkData {
 }
 
 function normalizeLlmFeedback(
-  raw: { type: string; category: string; message: string; snippet: string; suggestedRewrite?: string; section: string }[],
+  raw: {
+    id?: string;
+    type: string;
+    category: string;
+    message: string;
+    snippet: string;
+    suggestedRewrite?: string;
+    section: string;
+  }[],
   structuredContent: ParsedSection[]
 ): FeedbackItem[] {
   const sectionSet = new Set(SECTION_KEYS);
-  return raw.slice(0, 30).map((f, i) => {
+  const seenIds = new Set<string>();
+  return raw.slice(0, 20).map((f, i) => {
     const section = sectionSet.has(f.section as SectionKey) ? (f.section as SectionKey) : "experience";
     const category = CATEGORIES.includes(f.category as (typeof CATEGORIES)[number]) ? f.category : "impact";
     const type = f.type === "praise" || f.type === "improve" || f.type === "critical" ? f.type : "improve";
+    let id = typeof f.id === "string" && f.id.trim() ? f.id.trim() : `fb-${i + 1}`;
+    if (seenIds.has(id)) id = `${id}-${i + 1}`;
+    seenIds.add(id);
+
     const snippet = (f.snippet || "").trim().slice(0, 120);
     // Do NOT default snippet when empty — empty snippet keeps feedback in "High-level & suggested additions"
     return {
-      id: `f-${i + 1}`,
+      id,
       type,
       category: category as FeedbackItem["category"],
       message: (f.message || "").slice(0, 500),
@@ -77,6 +155,111 @@ function normalizeLlmFeedback(
       section,
     };
   });
+}
+
+function normalizeRecruiterVerdict(raw: unknown): import("@/types/resume").RecruiterVerdict | undefined {
+  if (!raw || typeof raw !== "object") return undefined;
+  const r = raw as any;
+  const verdict = String(r.verdict || "");
+  const hiringLikelihood = String(r.hiringLikelihood || "");
+  const decision = String(r.decision || "");
+  const allowedVerdicts = new Set(["Low Signal", "Mixed Signal", "Strong Signal", "High Signal"]);
+  const allowedLikelihood = new Set(["Low", "Medium", "High"]);
+  const allowedDecision = new Set(["Interview", "Reject"]);
+  if (!allowedVerdicts.has(verdict) || !allowedLikelihood.has(hiringLikelihood) || !allowedDecision.has(decision)) return undefined;
+  return {
+    verdict: verdict as any,
+    hiringLikelihood: hiringLikelihood as any,
+    decision: decision as any,
+    anchorNote: String(r.anchorNote || "").slice(0, 2500),
+    strengths: Array.isArray(r.strengths) ? r.strengths.slice(0, 6).map((x: any) => String(x).slice(0, 500)) : [],
+    criticalWeaknesses: Array.isArray(r.criticalWeaknesses) ? r.criticalWeaknesses.slice(0, 6).map((x: any) => String(x).slice(0, 500)) : [],
+  };
+}
+
+function normalizeScanTest(raw: unknown): import("@/types/resume").ScanTest | undefined {
+  if (!raw || typeof raw !== "object") return undefined;
+  const s = raw as any;
+  const standsOut = Array.isArray(s.standsOut) ? s.standsOut.slice(0, 5).map((x: any) => String(x).slice(0, 500)) : [];
+  const confusing = Array.isArray(s.confusing) ? s.confusing.slice(0, 5).map((x: any) => String(x).slice(0, 500)) : [];
+  const missing = Array.isArray(s.missing) ? s.missing.slice(0, 5).map((x: any) => String(x).slice(0, 500)) : [];
+  if (!standsOut.length && !confusing.length && !missing.length) return undefined;
+  return { standsOut, confusing, missing };
+}
+
+function normalizeBulletsBlock(
+  raw: unknown,
+  maxBullets = 7
+): { title: string; bullets: string[] } | undefined {
+  if (!raw || typeof raw !== "object") return undefined;
+  const b = raw as any;
+  const title = String(b.title || "").slice(0, 180);
+  const bullets = Array.isArray(b.bullets)
+    ? b.bullets.slice(0, maxBullets).map((x: any) => String(x).slice(0, 600))
+    : [];
+  if (!title && !bullets.length) return undefined;
+  return { title: title || "", bullets };
+}
+
+function normalizeTopFixes(raw: unknown): import("@/types/resume").RankedFix[] | undefined {
+  if (!Array.isArray(raw)) return undefined;
+  const out: import("@/types/resume").RankedFix[] = [];
+  raw.slice(0, 8).forEach((x: any, idx: number) => {
+    if (!x || typeof x !== "object") return;
+    const rank = typeof x.rank === "number" ? x.rank : idx + 1;
+    const change = String(x.change || "").slice(0, 250);
+    const whyItMatters = String(x.whyItMatters || "").slice(0, 450);
+    const exampleRewrite = String(x.exampleRewrite || "").slice(0, 900);
+    const relatedFeedbackIds = Array.isArray(x.relatedFeedbackIds) ? x.relatedFeedbackIds.map((y: any) => String(y)).slice(0, 10) : undefined;
+    if (!change && !whyItMatters && !exampleRewrite) return;
+    out.push({ rank, change, whyItMatters, exampleRewrite, relatedFeedbackIds });
+  });
+  return out.length ? out : undefined;
+}
+
+function normalizeScorecardDimensions(raw: unknown): import("@/types/resume").ScorecardDimension[] | undefined {
+  if (!Array.isArray(raw)) return undefined;
+  const allowedKeys = new Set(["impact", "ownership", "technicalDepth", "execution", "clarity", "differentiation"]);
+  const allowedRatings = new Set(["High", "Medium", "Low"]);
+  const out: import("@/types/resume").ScorecardDimension[] = [];
+  raw.slice(0, 10).forEach((d: any) => {
+    const key = String(d?.key || "");
+    const rating = String(d?.rating || "");
+    if (!allowedKeys.has(key) || !allowedRatings.has(rating)) return;
+    out.push({
+      key: key as any,
+      label: String(d?.label || key).slice(0, 120),
+      rating: rating as any,
+      oneLineExplanation: String(d?.oneLineExplanation || "").slice(0, 250),
+      weight: typeof d?.weight === "number" ? d.weight : undefined,
+    });
+  });
+  return out.length ? out : undefined;
+}
+
+function normalizeReviewSteps(raw: unknown, validFeedbackIds: Set<string>): import("@/types/resume").ReviewStep[] | undefined {
+  if (!Array.isArray(raw)) return undefined;
+  const out: import("@/types/resume").ReviewStep[] = [];
+  raw.slice(0, 7).forEach((s: any) => {
+    const id = String(s?.id || "").slice(0, 60);
+    const title = String(s?.title || "").slice(0, 60);
+    const prompt = String(s?.prompt || "").slice(0, 250);
+    if (!id || !title || !prompt) return;
+    const highlightFeedbackIds = Array.isArray(s?.highlightFeedbackIds)
+      ? s.highlightFeedbackIds.map((x: any) => String(x)).filter((x: string) => validFeedbackIds.has(x)).slice(0, 30)
+      : [];
+    if (!highlightFeedbackIds.length) return;
+    out.push({
+      id,
+      title,
+      prompt,
+      highlightFeedbackIds,
+      relatedSectionTitles: Array.isArray(s?.relatedSectionTitles)
+        ? s.relatedSectionTitles.map((x: any) => String(x)).slice(0, 10)
+        : undefined,
+    });
+  });
+  return out.length ? out : undefined;
 }
 
 function normalizeSectionScores(
@@ -172,6 +355,14 @@ export async function analyzeResumeWithLLM(
     sectionScores?: unknown[];
     criteria?: unknown[];
     feedback?: unknown[];
+    recruiterVerdict?: unknown;
+    scanTest?: unknown;
+    whatHelps?: unknown;
+    whatHurts?: unknown;
+    topFixes?: unknown;
+    gapVsTopCandidates?: unknown;
+    scorecardDimensions?: unknown;
+    reviewSteps?: unknown;
   };
   try {
     parsed = JSON.parse(content);
@@ -188,6 +379,18 @@ export async function analyzeResumeWithLLM(
   const overallScore = Math.min(100, Math.max(0, Math.round(sectionAverage)));
   const criteria = normalizeCriteria((parsed.criteria as ScorecardCriteria[]) || []);
   const feedback = normalizeLlmFeedback((parsed.feedback as FeedbackItem[]) || [], structuredContent);
+
+  const validFeedbackIds = new Set(feedback.map((f) => f.id));
+  const recruiterVerdict = normalizeRecruiterVerdict(parsed.recruiterVerdict);
+  const scanTest = normalizeScanTest(parsed.scanTest);
+  const whatHelps = normalizeBulletsBlock(parsed.whatHelps, 7);
+  const whatHurts = normalizeBulletsBlock(parsed.whatHurts, 8);
+  const topFixes = normalizeTopFixes(parsed.topFixes);
+  const gapVsTopCandidates =
+    typeof parsed.gapVsTopCandidates === "string" ? String(parsed.gapVsTopCandidates).slice(0, 2500) : undefined;
+  const scorecardDimensions = normalizeScorecardDimensions(parsed.scorecardDimensions);
+  const reviewSteps = normalizeReviewSteps(parsed.reviewSteps, validFeedbackIds);
+
   const benchmark = computeBenchmark(overallScore);
 
   return {
@@ -196,6 +399,14 @@ export async function analyzeResumeWithLLM(
     criteria,
     feedback,
     benchmark,
+    recruiterVerdict,
+    scanTest,
+    whatHelps,
+    whatHurts,
+    topFixes,
+    gapVsTopCandidates,
+    scorecardDimensions,
+    reviewSteps,
     contextUsed: context?.trim() || undefined,
   };
 }

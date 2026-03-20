@@ -3,15 +3,10 @@ import mammoth from "mammoth";
 import { structureText } from "@/lib/parseResume";
 import { analyzeResume } from "@/lib/analyzeResume";
 import { analyzeResumeWithLLM } from "@/lib/analyzeResumeWithLLM";
+import { parsePdfBuffer } from "@/lib/parsePdfServer";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const MAX_CONTEXT_LENGTH = 8000;
-
-async function parsePdf(buffer: Buffer): Promise<string> {
-  const pdfParse = (await import("pdf-parse")).default;
-  const data = await pdfParse(buffer);
-  return data.text;
-}
 
 async function parseDocx(buffer: Buffer): Promise<string> {
   const result = await mammoth.extractRawText({ buffer });
@@ -37,7 +32,7 @@ export async function POST(request: NextRequest) {
     let rawText: string;
 
     if (type === "application/pdf") {
-      rawText = await parsePdf(buffer);
+      rawText = await parsePdfBuffer(buffer);
     } else if (
       type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
       file.name?.toLowerCase().endsWith(".docx")

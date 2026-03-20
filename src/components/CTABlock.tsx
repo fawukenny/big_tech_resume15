@@ -2,14 +2,24 @@
 
 const YOUTUBE_PLAYLIST = "https://www.youtube.com/playlist?list=PLIJQNP_KafiJ6z9mHH74TMCogoiWU3lhz";
 
-export function CTABlock() {
+type CTABlockProps = {
+  /** Richer copy on the results page (replaces long footer YouTube line). */
+  variant?: "default" | "results";
+};
+
+export function CTABlock({ variant = "default" }: CTABlockProps) {
+  const sub =
+    variant === "results"
+      ? "Next step: keep leveling up with the insider’s guide — How to Elevate Your Resume for Big Tech (free on YouTube), plus the full Break into Big Tech path for elite roles and stronger offers."
+      : "Learn the proven insider’s guide to landing elite roles (and skyrocketing salaries).";
+
   return (
     <section className="card p-8 sm:p-10 text-center">
       <h2 className="section-heading text-xl sm:text-2xl">
         Break into Big Tech
       </h2>
-      <p className="section-subheading max-w-lg mx-auto mt-2 mb-8">
-        Learn the proven insider’s guide to landing elite roles (and skyrocketing salaries).
+      <p className="section-subheading max-w-2xl mx-auto mt-2 mb-8">
+        {sub}
       </p>
       <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
         <a
