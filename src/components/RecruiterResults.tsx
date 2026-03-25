@@ -75,7 +75,7 @@ export function RecruiterResults({ analysis }: { analysis: AnalysisResult }) {
 
   const [mounted, setMounted] = useState(false);
   const [view, setView] = useState<"highlights" | "document">("document");
-  const [feedbackTab, setFeedbackTab] = useState<"positive" | "improve">("positive");
+  const [feedbackTab, setFeedbackTab] = useState<"positive" | "improve">("improve");
   const [pdfRemountKey, setPdfRemountKey] = useState(0);
 
   const benchmark = analysis.benchmark;
@@ -191,8 +191,8 @@ export function RecruiterResults({ analysis }: { analysis: AnalysisResult }) {
           <h2 className="section-heading text-xl sm:text-2xl">Resume</h2>
           <div className="section-heading-underline" />
           <p className="text-xs text-[var(--text-muted)] mt-2 max-w-xl leading-relaxed">
-            Resume on the left, recruiter notes on the right. Tabs switch PDF vs text view and positive vs improvement
-            feedback.
+            Resume on the left, bar-raiser notes on the right. Tabs switch PDF vs text view; improvements and risks open by
+            default.
           </p>
         </div>
 

@@ -1,5 +1,7 @@
 "use client";
 
+import { trackClientEvent } from "@/lib/trackClient";
+
 const YOUTUBE_PLAYLIST = "https://www.youtube.com/playlist?list=PLIJQNP_KafiJ6z9mHH74TMCogoiWU3lhz";
 
 type CTABlockProps = {
@@ -26,6 +28,7 @@ export function CTABlock({ variant = "default" }: CTABlockProps) {
           href={YOUTUBE_PLAYLIST}
           target="_blank"
           rel="noopener noreferrer"
+          onClick={() => trackClientEvent("course_click", "cta_youtube_primary")}
           className="btn-primary inline-flex items-center gap-2"
         >
           <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="currentColor">
@@ -36,6 +39,7 @@ export function CTABlock({ variant = "default" }: CTABlockProps) {
         <a
           href="#"
           className="btn-secondary inline-flex items-center gap-2"
+          onClick={() => trackClientEvent("course_click", "cta_explore_full_placeholder")}
         >
           Explore the full course
         </a>

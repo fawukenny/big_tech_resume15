@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { logServerEvent } from "@/lib/serverEventLog";
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,10 +13,11 @@ export async function POST(request: NextRequest) {
 
     const text = typeof message === "string" ? message.trim().slice(0, 2000) : "";
 
-    // In production: persist to DB, send to analytics, or forward to your tooling.
-    if (process.env.NODE_ENV !== "test") {
-      console.info("[Feedback]", { rating: r, message: text || "(no message)" });
-    }
+    await logServerEvent({
+      type: "product_feedback",
+      rating: r,
+      message: text || undefined,
+    });
 
     return NextResponse.json({ success: true });
   } catch {

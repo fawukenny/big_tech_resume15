@@ -1,5 +1,7 @@
 "use client";
 
+import { trackClientEvent } from "@/lib/trackClient";
+
 const YOUTUBE_PLAYLIST =
   "https://www.youtube.com/playlist?list=PLIJQNP_KafiJ6z9mHH74TMCogoiWU3lhz";
 
@@ -10,6 +12,7 @@ export function FloatingCourseLink() {
       href={YOUTUBE_PLAYLIST}
       target="_blank"
       rel="noopener noreferrer"
+      onClick={() => trackClientEvent("course_click", "floating_course_link")}
       className="flex items-center justify-center gap-2 rounded-full border border-white/20 bg-[var(--surface-elevated)]/95 backdrop-blur-md px-4 py-2.5 shadow-lg shadow-black/40 text-xs sm:text-sm font-semibold text-[var(--text)] hover:border-red-500/40 hover:bg-white/[0.08] transition-all duration-200 animate-feedback-fab focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface)] w-full text-center"
       aria-label="Free YouTube course: elevate your resume for Big Tech"
     >

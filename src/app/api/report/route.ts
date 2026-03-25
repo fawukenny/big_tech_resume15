@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import type { AnalysisResult } from "@/types/resume";
+import { logServerEvent } from "@/lib/serverEventLog";
 
-// In production you would send a real email and attach the PDF.
-// Here we just validate and return success; client can trigger a download with a blob PDF.
+// Emails are not persisted to a database by default — see LEADS_WEBHOOK_URL in .env.example.
+// Here we validate and return success; client triggers PDF download with a blob.
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -24,8 +25,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Store email for "marketing" (in production: add to your CRM/email tool)
-    // await addToMailingList(email);
+    await logServerEvent({
+      type: "report_email_request",
+      email: email.trim().toLowerCase(),
+      acceptMarketing: Boolean(acceptMarketing),
+      hasAnalysis: Boolean(analysis),
+    });
 
     return NextResponse.json({
       success: true,
