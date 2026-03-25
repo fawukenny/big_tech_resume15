@@ -5,6 +5,7 @@ import type { AnalysisResult, RecruiterVerdict } from "@/types/resume";
 import { ResumeWithFeedback } from "@/components/ResumeWithFeedback";
 import { HowYouCompareBar } from "@/components/HowYouCompareBar";
 import { resolveFilterOutRisksDisplay } from "@/lib/filterOutRisks";
+import { dedupeStringsPreserveOrder } from "@/lib/dedupeStrings";
 import { getScoreTheme } from "@/lib/scoreTheme";
 
 function pillTone(kind: "good" | "warn" | "bad") {
@@ -101,8 +102,10 @@ export function RecruiterResults({ analysis }: { analysis: AnalysisResult }) {
     [analysis.feedback]
   );
 
-  const helpsToShow = helps.length ? helps : praise.slice(0, 6).map((f) => f.message);
-  const risksToShow = filterOutRisks;
+  const helpsToShow = dedupeStringsPreserveOrder(
+    helps.length ? helps : praise.slice(0, 8).map((f) => f.message)
+  ).slice(0, 6);
+  const risksToShow = dedupeStringsPreserveOrder(filterOutRisks);
 
   return (
     <div className="space-y-10">

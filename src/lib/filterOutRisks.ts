@@ -1,4 +1,5 @@
 import type { AnalysisResult, FeedbackItem, RecruiterVerdict } from "@/types/resume";
+import { dedupeStringsPreserveOrder } from "@/lib/dedupeStrings";
 
 /**
  * Max number of "filter-out" / what-hurts bullets to show in UI and PDF report.
@@ -18,5 +19,5 @@ export function resolveFilterOutRisksDisplay(analysis: AnalysisResult): string[]
   const flags = analysis.feedback.filter((f: FeedbackItem) => f.type !== "praise");
   const cap = getFilterOutRiskCap(analysis.recruiterVerdict);
   const merged = hurts.length ? [...hurts] : flags.map((f) => f.message);
-  return merged.slice(0, cap);
+  return dedupeStringsPreserveOrder(merged).slice(0, cap);
 }

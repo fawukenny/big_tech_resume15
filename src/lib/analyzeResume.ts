@@ -8,6 +8,7 @@ import type {
 } from "@/types/resume";
 import type { ParsedSection } from "./parseResume";
 import { ANTI_PATTERNS, PRAISE_PATTERNS, IMPACT_TIPS, METRICS_TIPS, KEYWORD_TIPS, STRUCTURE_TIPS } from "./knowledge/resumeTips";
+import { dedupeFeedbackByMessage, dedupeStringsPreserveOrder } from "./dedupeStrings";
 
 const KEYWORDS = [
   "scaled",
@@ -86,40 +87,39 @@ function generateFeedback(sections: ParsedSection[], fullText: string): Feedback
   const expText = experienceSection?.body ?? fullText;
   const bullets = lines.filter((l) => /^[\s•\-*]\s/.test(l) || /^\d+\./.test(l));
 
-  // ——— Anti-patterns: one feedback per matching line (actionable) ———
+  // ——— Anti-patterns: first matching line per pattern (avoid duplicate identical messages) ———
   for (const { pattern, message, category } of ANTI_PATTERNS) {
     for (const line of lines) {
       if (line.length < 10) continue;
-      const match = line.match(pattern);
-      if (match) {
-        const snippet = line.slice(0, 100);
-        const section = findSectionForLine(line, sections);
-        add({
-          type: category === "specificity" ? "critical" : "improve",
-          category,
-          message,
-          snippet,
-          suggestedRewrite: IMPACT_TIPS[0] || "Start with an action verb and add a quantifiable result.",
-          section,
-        });
-      }
+      if (!pattern.test(line)) continue;
+      const snippet = line.slice(0, 100);
+      const section = findSectionForLine(line, sections);
+      add({
+        type: category === "specificity" ? "critical" : "improve",
+        category,
+        message,
+        snippet,
+        suggestedRewrite: IMPACT_TIPS[0] || "Start with an action verb and add a quantifiable result.",
+        section,
+      });
+      break;
     }
   }
 
-  // ——— Praise: highlight strong lines so user keeps doing it ———
+  // ——— Praise: first strong line per pattern (same message per pattern was spamming the UI) ———
   for (const { pattern, message, category } of PRAISE_PATTERNS) {
     for (const line of lines) {
       if (line.length < 15) continue;
-      if (pattern.test(line)) {
-        const section = findSectionForLine(line, sections);
-        add({
-          type: "praise",
-          category,
-          message,
-          snippet: line.slice(0, 100),
-          section,
-        });
-      }
+      if (!pattern.test(line)) continue;
+      const section = findSectionForLine(line, sections);
+      add({
+        type: "praise",
+        category,
+        message,
+        snippet: line.slice(0, 100),
+        section,
+      });
+      break;
     }
   }
 
@@ -306,7 +306,7 @@ export function analyzeResume(
     criteria.reduce((sum, c) => sum + (c.score / c.max) * c.weight, 0)
   );
   const sectionScores = computeSectionScores(structuredContent, rawText);
-  const feedback = generateFeedback(structuredContent, rawText);
+  const feedback = dedupeFeedbackByMessage(generateFeedback(structuredContent, rawText));
   const benchmark = computeBenchmark(overallScore);
 
   const ratingFromScore = (n: number): "High" | "Medium" | "Low" =>
@@ -415,11 +415,11 @@ export function analyzeResume(
   const hurts = feedback.filter((f) => f.type !== "praise");
   const whatHelps = {
     title: "What helps you get interviews",
-    bullets: praise.slice(0, 5).map((f) => f.message),
+    bullets: dedupeStringsPreserveOrder(praise.slice(0, 8).map((f) => f.message)).slice(0, 5),
   };
   const whatHurts = {
     title: "What hurts you get filtered out",
-    bullets: hurts.slice(0, 8).map((f) => f.message),
+    bullets: dedupeStringsPreserveOrder(hurts.slice(0, 12).map((f) => f.message)).slice(0, 8),
   };
 
   const topFixes = (() => {

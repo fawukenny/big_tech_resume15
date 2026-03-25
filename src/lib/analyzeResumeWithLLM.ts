@@ -7,6 +7,7 @@ import type {
   SectionKey,
 } from "@/types/resume";
 import type { ParsedSection } from "./parseResume";
+import { dedupeFeedbackByMessage, dedupeStringsPreserveOrder } from "./dedupeStrings";
 
 const SECTION_KEYS: SectionKey[] = ["experience", "education", "skills", "summary", "projects", "other"];
 const CATEGORIES = ["impact", "metrics", "keywords", "readability", "structure", "leadership", "specificity"] as const;
@@ -225,7 +226,7 @@ function normalizeBulletsBlock(
   const b = raw as any;
   const title = String(b.title || "").slice(0, 180);
   const bullets = Array.isArray(b.bullets)
-    ? b.bullets.slice(0, maxBullets).map((x: any) => String(x).slice(0, 600))
+    ? dedupeStringsPreserveOrder(b.bullets.map((x: any) => String(x).slice(0, 600))).slice(0, maxBullets)
     : [];
   if (!title && !bullets.length) return undefined;
   return { title: title || "", bullets };
@@ -374,6 +375,8 @@ export async function analyzeResumeWithLLM(
     ],
     response_format: { type: "json_object" },
     temperature: 0.35,
+    frequency_penalty: 0.35,
+    presence_penalty: 0.1,
     max_tokens: 7168,
   });
 
@@ -408,7 +411,10 @@ export async function analyzeResumeWithLLM(
       : Number(parsed.overallScore) ?? 70;
   const overallScore = Math.min(100, Math.max(0, Math.round(sectionAverage)));
   const criteria = normalizeCriteria((parsed.criteria as ScorecardCriteria[]) || []);
-  const feedback = normalizeLlmFeedback((parsed.feedback as FeedbackItem[]) || [], structuredContent);
+  const feedback = dedupeFeedbackByMessage(
+    normalizeLlmFeedback((parsed.feedback as FeedbackItem[]) || [], structuredContent),
+    "fb"
+  );
 
   const validFeedbackIds = new Set(feedback.map((f) => f.id));
   const recruiterVerdict = normalizeRecruiterVerdict(parsed.recruiterVerdict);
