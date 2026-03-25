@@ -1,5 +1,28 @@
+import fs from "fs";
 import path from "path";
 import { pathToFileURL } from "url";
+
+/**
+ * Resolve the PDF.js worker file for Node/serverless. In production, Next.js file tracing
+ * may omit files that are only loaded via dynamic import; `next.config` includes these paths.
+ * `public/pdf.worker.min.mjs` is copied in postinstall and is a reliable fallback when present.
+ */
+function resolvePdfWorkerPath(): string {
+  const cwd = process.cwd();
+  const candidates = [
+    path.join(cwd, "public", "pdf.worker.min.mjs"),
+    path.join(cwd, "node_modules", "pdfjs-dist", "build", "pdf.worker.min.mjs"),
+    path.join(cwd, "node_modules", "pdfjs-dist", "build", "pdf.worker.mjs"),
+  ];
+  const found = candidates.find((p) => {
+    try {
+      return fs.existsSync(p);
+    } catch {
+      return false;
+    }
+  });
+  return found ?? candidates[1];
+}
 
 /**
  * Extract plain text from a PDF buffer using pdf.js (same family as the client viewer).
@@ -10,14 +33,7 @@ export async function parsePdfBuffer(buffer: Buffer): Promise<string> {
   const pdfjs = await import("pdfjs-dist");
   const { getDocument, GlobalWorkerOptions } = pdfjs;
 
-  const workerPath = path.join(
-    process.cwd(),
-    "node_modules",
-    "pdfjs-dist",
-    "build",
-    "pdf.worker.min.mjs"
-  );
-  GlobalWorkerOptions.workerSrc = pathToFileURL(workerPath).href;
+  GlobalWorkerOptions.workerSrc = pathToFileURL(resolvePdfWorkerPath()).href;
 
   const loadingTask = getDocument({
     data: new Uint8Array(buffer),
