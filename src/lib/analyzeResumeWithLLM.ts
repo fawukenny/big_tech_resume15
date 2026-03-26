@@ -8,6 +8,7 @@ import type {
 } from "@/types/resume";
 import type { ParsedSection } from "./parseResume";
 import { dedupeFeedbackByMessage, dedupeStringsPreserveOrder } from "./dedupeStrings";
+import { tryParseOpenAiJsonObject } from "./llmJsonParse";
 
 const SECTION_KEYS: SectionKey[] = ["experience", "education", "skills", "summary", "projects", "other"];
 const CATEGORIES = ["impact", "metrics", "keywords", "readability", "structure", "leadership", "specificity"] as const;
@@ -43,7 +44,7 @@ function buildSystemPrompt(structuredContent: ParsedSection[]): string {
 - Each **suggestedRewrite** must be **ready to paste**: one or two tight resume lines (bullets may start with a bullet glyph or hyphen). You may offer **two variants** separated by " | " or a newline if both are strong.
 - Tie the rewrite directly to the gap you named—same scope/role, but sharper ownership, scale, metric, or outcome. No generic placeholder text.
 
-Output strict JSON only, no markdown or extra text.
+Output strict JSON only, no markdown or extra text. Do not wrap the object in markdown code fences (no \`\`\`).
 
 Schema:
 {
@@ -351,6 +352,15 @@ function normalizeCriteria(raw: { key: string; label: string; score: number; max
   }));
 }
 
+function maxTokensForModel(model: string): number {
+  const m = model.toLowerCase();
+  if (m.includes("gpt-4o") || m.includes("gpt-5") || m.includes("o1") || m.includes("o3")) {
+    return 16_384;
+  }
+  if (m.includes("gpt-4")) return 8192;
+  return 7168;
+}
+
 export async function analyzeResumeWithLLM(
   rawText: string,
   structuredContent: ParsedSection[],
@@ -367,23 +377,80 @@ export async function analyzeResumeWithLLM(
   const userPrompt = buildUserPrompt(rawText, context);
 
   const model = process.env.OPENAI_ANALYZE_MODEL || "gpt-4o-mini";
-  const res = await openai.chat.completions.create({
-    model,
+  const maxTokens = maxTokensForModel(model);
+
+  async function runOnce(opts: {
+    temperature: number;
+    messages: { role: "system" | "user"; content: string }[];
+  }) {
+    return openai.chat.completions.create({
+      model,
+      messages: opts.messages,
+      response_format: { type: "json_object" },
+      temperature: opts.temperature,
+      frequency_penalty: 0.12,
+      presence_penalty: 0,
+      max_tokens: maxTokens,
+    });
+  }
+
+  let res = await runOnce({
+    temperature: 0.35,
     messages: [
       { role: "system", content: systemPrompt },
       { role: "user", content: userPrompt },
     ],
-    response_format: { type: "json_object" },
-    temperature: 0.35,
-    frequency_penalty: 0.35,
-    presence_penalty: 0.1,
-    max_tokens: 7168,
   });
 
-  const content = res.choices[0]?.message?.content;
+  let content = res.choices[0]?.message?.content;
+  const finishReason = res.choices[0]?.finish_reason ?? null;
   if (!content) throw new Error("Empty response from LLM");
 
-  let parsed: {
+  let parsedObj = tryParseOpenAiJsonObject(content);
+
+  if (!parsedObj && finishReason === "length") {
+    console.error("[analyzeResumeWithLLM] JSON parse failed, likely truncated (finish_reason=length)", {
+      model,
+      contentLength: content.length,
+      maxTokens,
+    });
+  } else if (!parsedObj) {
+    console.error("[analyzeResumeWithLLM] JSON parse failed", {
+      model,
+      finishReason,
+      contentLength: content?.length ?? 0,
+      head: content?.slice(0, 220).replace(/\n/g, "\\n"),
+    });
+  }
+
+  if (!parsedObj) {
+    res = await runOnce({
+      temperature: 0,
+      messages: [
+        { role: "system", content: `${systemPrompt}\n\nCRITICAL: Reply with one valid JSON object only. No markdown. No text before or after the JSON.` },
+        {
+          role: "user",
+          content: `${userPrompt}\n\nIf your previous attempt failed validation, output a complete, valid JSON object following the schema. Keep strings concise so the full object fits.`,
+        },
+      ],
+    });
+    content = res.choices[0]?.message?.content ?? "";
+    const retryFinish = res.choices[0]?.finish_reason ?? null;
+    parsedObj = tryParseOpenAiJsonObject(content);
+    if (!parsedObj) {
+      console.error("[analyzeResumeWithLLM] Retry also failed to parse JSON", {
+        finishReason: retryFinish,
+        contentLength: content.length,
+      });
+      const hint =
+        retryFinish === "length"
+          ? " The model hit the output limit—try a shorter resume or less context."
+          : "";
+      throw new Error(`LLM returned invalid JSON after retry.${hint} Try again.`);
+    }
+  }
+
+  const parsed = parsedObj as {
     overallScore?: number;
     sectionScores?: unknown[];
     criteria?: unknown[];
@@ -397,11 +464,6 @@ export async function analyzeResumeWithLLM(
     scorecardDimensions?: unknown;
     reviewSteps?: unknown;
   };
-  try {
-    parsed = JSON.parse(content);
-  } catch {
-    throw new Error("LLM returned invalid JSON");
-  }
 
   const sectionScores = normalizeSectionScores((parsed.sectionScores as SectionScore[]) || [], structuredContent);
   // Derive overall from section scores so Summary is logically consistent (e.g. overall cannot be "Strong" when most sections are "Needs work")
@@ -411,16 +473,24 @@ export async function analyzeResumeWithLLM(
       : Number(parsed.overallScore) ?? 70;
   const overallScore = Math.min(100, Math.max(0, Math.round(sectionAverage)));
   const criteria = normalizeCriteria((parsed.criteria as ScorecardCriteria[]) || []);
-  const feedback = dedupeFeedbackByMessage(
-    normalizeLlmFeedback((parsed.feedback as FeedbackItem[]) || [], structuredContent),
-    "fb"
-  );
+  const rawFeedback = Array.isArray(parsed.feedback) ? parsed.feedback : [];
+  let feedback = dedupeFeedbackByMessage(normalizeLlmFeedback(rawFeedback as FeedbackItem[], structuredContent), "fb");
 
-  const validFeedbackIds = new Set(feedback.map((f) => f.id));
   const recruiterVerdict = normalizeRecruiterVerdict(parsed.recruiterVerdict);
   const scanTest = normalizeScanTest(parsed.scanTest);
-  const whatHelps = normalizeBulletsBlock(parsed.whatHelps, 7);
-  const whatHurts = normalizeBulletsBlock(parsed.whatHurts, 8);
+  let whatHelps = normalizeBulletsBlock(parsed.whatHelps, 7);
+  let whatHurts = normalizeBulletsBlock(parsed.whatHurts, 8);
+
+  if (feedback.length === 0) {
+    console.warn("[analyzeResumeWithLLM] LLM returned no feedback items; merging rule-based feedback");
+    const { analyzeResume } = await import("./analyzeResume");
+    const rb = analyzeResume(rawText, structuredContent);
+    feedback = dedupeFeedbackByMessage(rb.feedback, "fb");
+    if (!whatHelps?.bullets?.length) whatHelps = rb.whatHelps;
+    if (!whatHurts?.bullets?.length) whatHurts = rb.whatHurts;
+  }
+
+  const validFeedbackIds = new Set(feedback.map((f) => f.id));
   const topFixes = normalizeTopFixes(parsed.topFixes);
   const gapVsTopCandidates =
     typeof parsed.gapVsTopCandidates === "string" ? String(parsed.gapVsTopCandidates).slice(0, 2500) : undefined;
